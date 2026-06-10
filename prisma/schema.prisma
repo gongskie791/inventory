@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Stock {
+  in_stock
+  out_of_stock
+  low_stock
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Item {
+  id          String       @id @default(uuid())
+  name        String
+  category    String
+  unit        String
+  quantity    Int
+  price       Float
+  stocks      Int
+  supplierId  String
+  supplier    Supplier     @relation(fields: [supplierId], references: [id])
+  status      Stock
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  orderItems       OrderItem[]
+  stockIssues      StockIssue[]
+  stockAdjustments StockAdjustment[]
+}
+
+model StockAdjustment {
+  id            String   @id @default(uuid())
+  itemId        String
+  item          Item     @relation(fields: [itemId], references: [id])
+  previousStock Int
+  newStock      Int
+  reason        String?
+  createdAt     DateTime @default(now())
+}
+
+model StockIssue {
+  id        String   @id @default(uuid())
+  bulkId    String?
+  itemId    String
+  item      Item     @relation(fields: [itemId], references: [id])
+  quantity  Int
+  issuedTo  String
+  reason    String?
+  createdAt DateTime @default(now())
+}
+
+model Supplier {
+  id      String  @id @default(uuid())
+  name    String
+  contact String
+  email   String  @unique
+  phone   String  @unique
+  address String
+  items   Item[]
+  orders  Order[]
+}
+
+enum OrderStatus {
+  pending
+  approved
+  received
+  cancelled
+}
+
+model Order {
+  id                 String      @id @default(uuid())
+  supplierId         String
+  supplier           Supplier    @relation(fields: [supplierId], references: [id])
+  status             OrderStatus @default(pending)
+  totalAmount        Float       @default(0)
+  cancellationReason String?
+  items              OrderItem[]
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+}
+
+model OrderItem {
+  id       String @id @default(uuid())
+  orderId  String
+  order    Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  itemId   String
+  item     Item   @relation(fields: [itemId], references: [id])
+  quantity Int
+  price    Float
+}
